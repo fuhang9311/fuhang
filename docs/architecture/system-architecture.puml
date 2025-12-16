@@ -1,0 +1,139 @@
+@startuml 系统架构图
+!define RECTANGLE_COLOR #4A90E2
+!define SERVICE_COLOR #50C878
+!define GATEWAY_COLOR #FFB347
+!define MANAGEMENT_COLOR #9B59B6
+!define K8S_COLOR #326CE5
+!define NACOS_COLOR #42B983
+
+' 专业的颜色方案和样式设置
+skinparam backgroundColor #F5F5F5
+skinparam rectangleBorderColor #333333
+skinparam rectangleFontSize 12
+skinparam rectangleFontStyle bold
+skinparam ArrowColor #666666
+skinparam defaultTextAlignment center
+skinparam shadowing false
+skinparam roundcorner 10
+
+' 标题
+title 微服务系统架构图\n（基于 K8S + Nacos + 灵犀2.0）
+
+' ==================== 第一层：K8S 集群环境 ====================
+package "**K8S 集群环境**" as k8s #K8S_COLOR/LightSkyBlue {
+  
+  ' ==================== 第二层：应用接入层 ====================
+  rectangle "**应用接入层**" as appLayer #EEEEEE {
+    rectangle "应用1\n(用户端应用)" as app1 #RECTANGLE_COLOR
+    rectangle "应用2\n(用户端应用)" as app2 #RECTANGLE_COLOR
+  }
+  
+  ' ==================== 第三层：网关层（灵犀2.0能力）====================
+  rectangle "**灵犀2.0 网关层**" as gatewayLayer #EEEEEE {
+    rectangle "认证网关\n(统一认证入口)" as authGateway #GATEWAY_COLOR
+    rectangle "用户上下文转换\n(身份信息处理)" as contextTransform #GATEWAY_COLOR
+  }
+  
+  ' ==================== 第四层：服务注册与发现 ====================
+  rectangle "**服务注册与发现**" as registryLayer #EEEEEE {
+    database "Nacos\n(注册中心 & 配置中心)" as nacos #NACOS_COLOR
+  }
+  
+  ' ==================== 第五层：业务服务层 ====================
+  rectangle "**核心业务服务层**" as businessLayer #EEEEEE {
+    rectangle "用户中心" as userService #SERVICE_COLOR
+    rectangle "认证中心" as authService #SERVICE_COLOR
+    rectangle "学籍管理" as studentService #SERVICE_COLOR
+    rectangle "公告中心" as noticeService #SERVICE_COLOR
+    rectangle "消息中心" as messageService #SERVICE_COLOR
+    rectangle "文件中心" as fileService #SERVICE_COLOR
+  }
+  
+  ' ==================== 第六层：管理功能层 ====================
+  rectangle "**基础管理功能层**" as managementLayer #EEEEEE {
+    rectangle "用户管理" as userMgmt #MANAGEMENT_COLOR
+    rectangle "角色管理" as roleMgmt #MANAGEMENT_COLOR
+    rectangle "部门管理" as deptMgmt #MANAGEMENT_COLOR
+    rectangle "菜单管理" as menuMgmt #MANAGEMENT_COLOR
+    rectangle "权限控制" as permMgmt #MANAGEMENT_COLOR
+    rectangle "岗位管理" as postMgmt #MANAGEMENT_COLOR
+  }
+}
+
+' ==================== 连接关系和数据流向 ====================
+
+' 应用层到网关层
+app1 -down-> authGateway : 请求认证
+app2 -down-> authGateway : 请求认证
+
+' 网关层内部流转
+authGateway -down-> contextTransform : 认证成功
+
+' 网关层到 Nacos
+contextTransform -down-> nacos : 服务发现
+
+' Nacos 到业务服务层（服务注册）
+nacos -down-> userService : 注册/发现
+nacos -down-> authService : 注册/发现
+nacos -down-> studentService : 注册/发现
+nacos -down-> noticeService : 注册/发现
+nacos -down-> messageService : 注册/发现
+nacos -down-> fileService : 注册/发现
+
+' 业务服务层到管理功能层
+userService -down-> userMgmt : 调用
+authService -down-> roleMgmt : 调用
+studentService -down-> deptMgmt : 调用
+noticeService -down-> menuMgmt : 调用
+messageService -down-> permMgmt : 调用
+fileService -down-> postMgmt : 调用
+
+' 添加一些关键的横向关联
+authService -[hidden]right- userService
+userService -[hidden]right- studentService
+studentService -[hidden]right- noticeService
+noticeService -[hidden]right- messageService
+messageService -[hidden]right- fileService
+
+userMgmt -[hidden]right- roleMgmt
+roleMgmt -[hidden]right- deptMgmt
+menuMgmt -[hidden]right- permMgmt
+permMgmt -[hidden]right- postMgmt
+
+' ==================== 图例说明 ====================
+legend right
+  |<#K8S_COLOR> K8S 集群 |
+  |<#RECTANGLE_COLOR> 应用接入层 |
+  |<#GATEWAY_COLOR> 灵犀2.0 网关层 |
+  |<#NACOS_COLOR> 服务注册中心 |
+  |<#SERVICE_COLOR> 核心业务服务 |
+  |<#MANAGEMENT_COLOR> 基础管理功能 |
+  ====
+  **数据流向：**
+  从上到下，自顶向下
+  应用 → 网关 → Nacos → 业务服务 → 管理功能
+  ====
+  **关键技术栈：**
+  • Kubernetes (容器编排)
+  • Nacos (服务注册/配置)
+  • 灵犀2.0 (API 网关)
+endlegend
+
+' 添加注释说明
+note right of authGateway
+  **灵犀2.0 网关能力**
+  • 统一认证入口
+  • 用户身份验证
+  • 请求路由转发
+  • 安全防护
+end note
+
+note right of nacos
+  **Nacos 核心功能**
+  • 服务注册与发现
+  • 配置管理
+  • 健康检查
+  • 动态配置推送
+end note
+
+@enduml
